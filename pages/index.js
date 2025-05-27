@@ -10,6 +10,8 @@ export default function WalletConnect() {
   const [signer, setSigner] = useState(null);
   const [contractInstance, setContractInstance] = useState(null);
   const [tlContractInstance, setTlContractInstance] = useState(null);
+  const [tlBalanceOfResult, setBalanceOfTlResult] = useState("");
+
   const diamondAddress = "0xE8E83992B0f23B63e1808419eC6Fe3f47EFd1D7b"; // Your contract address
   const tlAddress = "0x3c8190143ba087d06f569d7d0F6E254183F580A2";
 
@@ -21,6 +23,8 @@ export default function WalletConnect() {
   const [availableSupply, setAvailableSupply] = useState("");
   const [maxSupply, setMaxSupply] = useState("");
   const [memberCount, setMemberCount] = useState(0);
+
+  const [myMyGovToken, setmyMyGovToken] = useState("");
 
   // Input states
   const [amountInput, setAmountInput] = useState("");
@@ -65,6 +69,8 @@ export default function WalletConnect() {
   const [testMintToAddress, setTestMintToAddress] = useState("");
   const [testMintMgovAmount, setTestMintMgovAmount] = useState("");
   const [testMintTlAmount, setTestMintTlAmount] = useState("");
+
+  const [tlAllowanceResult, setTlAllowanceResult] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -152,6 +158,7 @@ export default function WalletConnect() {
       const decimals = await contractInstance.decimals();
       setTokenDecimals(Number(decimals)); // Convert BigInt to Number for decimals
       const supply = await contractInstance.balanceOf(diamondAddress);
+      await handleGenericRead("balanceOf", setmyMyGovToken, [account]);
       setAvailableSupply(supply.toString());
       const max = await contractInstance.MAX_SUPPLY();
       setMaxSupply(max.toString());
@@ -172,7 +179,7 @@ export default function WalletConnect() {
       fetchInitialData();
       fetchMemberCount();
     } catch (error) {
-      // console.error(`Error in ${methodName}:`, error);
+      console.log(`Error in ${methodName}:`, error);
       const rawErrorMessage = error.data?.message || error.message;
       const errorMessage = rawErrorMessage.split("(action")[0];
       setMessage(`Error ${errorMessage}`);
@@ -208,6 +215,77 @@ export default function WalletConnect() {
     setMessage(`Workspaceing ${methodName}...`);
     try {
       const result = await contractInstance[methodName](...args);
+
+      if (typeof result === "bigint" || result._isBigNumber) {
+        setResult(result.toString());
+      } else if (Array.isArray(result)) {
+        // Handle structs or multiple return values if they are plain arrays
+        if (result.length > 0 && typeof result[0] === "bigint") {
+          setResult(result.map((val) => val.toString()));
+        } else if (
+          typeof result === "object" &&
+          result !== null &&
+          !Array.isArray(result)
+        ) {
+          // Handle named return values (structs)
+          const formattedResult = {};
+          for (const key in result) {
+            if (
+              Object.hasOwnProperty.call(result, key) &&
+              isNaN(parseInt(key))
+            ) {
+              // Check if key is not a numerical index
+              formattedResult[key] =
+                typeof result[key] === "bigint"
+                  ? result[key].toString()
+                  : result[key];
+              if (Array.isArray(formattedResult[key])) {
+                formattedResult[key] = formattedResult[key].map((item) =>
+                  typeof item === "bigint" ? item.toString() : item
+                );
+              }
+            }
+          }
+          setResult(formattedResult);
+        } else {
+          setResult(result);
+        }
+      } else if (typeof result === "object" && result !== null) {
+        // For structs
+        const formattedResult = {};
+        // Ethers v6 returns named properties for structs
+        for (const key in result) {
+          if (isNaN(parseInt(key))) {
+            // Filter out array indices if present
+            formattedResult[key] =
+              typeof result[key] === "bigint"
+                ? result[key].toString()
+                : result[key];
+            if (Array.isArray(formattedResult[key])) {
+              // if a field is an array of bigints
+              formattedResult[key] = formattedResult[key].map((item) =>
+                typeof item === "bigint" ? item.toString() : item
+              );
+            }
+          }
+        }
+        setResult(formattedResult);
+      } else {
+        setResult(result);
+      }
+      setMessage(`${methodName} fetched successfully.`);
+    } catch (error) {
+      console.error(`Error fetching ${methodName}:`, error);
+      setMessage(`Error fetching ${methodName}: ${error.message}`);
+      setResult(null); // Or some error indicator
+    }
+  };
+
+  const tlHandleGenericRead = async (methodName, setResult, args = []) => {
+    if (!tlContractInstance) return alert("Contract not initialized.");
+    setMessage(`Workspaceing ${methodName}...`);
+    try {
+      const result = await tlContractInstance[methodName](...args);
 
       if (typeof result === "bigint" || result._isBigNumber) {
         setResult(result.toString());
@@ -409,6 +487,14 @@ export default function WalletConnect() {
             Refresh Token Info
           </button>
         </div>
+
+        <p>
+          Your Balance :{" "}
+          {availableSupply
+            ? ethers.formatUnits(myMyGovToken, tokenDecimals || 18)
+            : "Loading..."}{" "}
+          {tokenSymbol}
+        </p>
 
         <p>
           Available Supply:{" "}
@@ -1182,6 +1268,64 @@ export default function WalletConnect() {
           >
             Donate TLToken
           </button>
+        </div>
+
+        <div>
+          <h4>Allowance</h4>
+          <input
+            type="text"
+            placeholder="Owner Address"
+            value={ownerAddressInput}
+            onChange={(e) => setOwnerAddressInput(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Spender Address"
+            value={spenderAddressInput}
+            onChange={(e) => setSpenderAddressInput(e.target.value)}
+          />
+          <button
+            onClick={() =>
+              tlHandleGenericRead("allowance", setTlAllowanceResult, [
+                ownerAddressInput,
+                spenderAddressInput,
+              ])
+            }
+          >
+            Get Allowance
+          </button>
+          {tlAllowanceResult && (
+            <p>
+              Allowance:{" "}
+              {ethers.formatUnits(tlAllowanceResult, tokenDecimals || 18)}{" "}
+              TLToken
+            </p>
+          )}
+        </div>
+
+        <div>
+          <h4>Balance Of</h4>
+          <input
+            type="text"
+            placeholder="Account Address"
+            value={addressInput}
+            onChange={(e) => setAddressInput(e.target.value)}
+          />
+          <button
+            onClick={() =>
+              tlHandleGenericRead("balanceOf", setBalanceOfTlResult, [
+                addressInput,
+              ])
+            }
+          >
+            Get Balance
+          </button>
+          {tlBalanceOfResult && (
+            <p>
+              Balance:{" "}
+              {ethers.formatUnits(tlBalanceOfResult, tokenDecimals || 18)} Tl
+            </p>
+          )}
         </div>
 
         <style jsx>{`
