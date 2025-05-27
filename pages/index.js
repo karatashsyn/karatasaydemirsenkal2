@@ -2,13 +2,16 @@ import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
 import DiamondAbi from "@/abi/Diamond.json";
+import tlAbi from "@/abi/TlToken.json";
 // Add others similarly
 
 export default function WalletConnect() {
   const [account, setAccount] = useState(null);
   const [signer, setSigner] = useState(null);
   const [contractInstance, setContractInstance] = useState(null);
-  const diamondAddress = "0x4c6DEE8FE9De18686748b331174510aB76E4bc45"; // Your contract address
+  const [tlContractInstance, setTlContractInstance] = useState(null);
+  const diamondAddress = "0xE8E83992B0f23B63e1808419eC6Fe3f47EFd1D7b"; // Your contract address
+  const tlAddress = "0x3c8190143ba087d06f569d7d0F6E254183F580A2";
 
   // General state for messages and results
   const [message, setMessage] = useState("");
@@ -86,6 +89,25 @@ export default function WalletConnect() {
   }, []);
 
   useEffect(() => {
+    const init = async () => {
+      if (window.ethereum) {
+        const browserProvider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await browserProvider.send("eth_accounts", []);
+        if (accounts.length > 0) {
+          const signerInstance = await browserProvider.getSigner();
+          const contractObj = new ethers.Contract(
+            tlAddress,
+            tlAbi?.abi,
+            signerInstance
+          );
+          setTlContractInstance(contractObj);
+        }
+      }
+    };
+    init();
+  }, [signer]);
+
+  useEffect(() => {
     if (contractInstance) {
       fetchInitialData();
       fetchMemberCount();
@@ -145,6 +167,29 @@ export default function WalletConnect() {
     setMessage(`Processing ${methodName}...`);
     try {
       const tx = await contractInstance[methodName](...args);
+      await tx.wait();
+      setMessage(successMessage || `${methodName} successful!`);
+      fetchInitialData();
+      fetchMemberCount();
+    } catch (error) {
+      // console.error(`Error in ${methodName}:`, error);
+      const rawErrorMessage = error.data?.message || error.message;
+      const errorMessage = rawErrorMessage.split("(action")[0];
+      setMessage(`Error ${errorMessage}`);
+      alert(errorMessage);
+    }
+  };
+
+  const handleGenericTlWrite = async (
+    methodName,
+    args = [],
+    successMessage
+  ) => {
+    if (!contractInstance || !signer)
+      return alert("Connect wallet and ensure signer is available.");
+    setMessage(`Processing ${methodName}...`);
+    try {
+      const tx = await tlContractInstance[methodName](...args);
       await tx.wait();
       setMessage(successMessage || `${methodName} successful!`);
       fetchInitialData();
@@ -621,29 +666,6 @@ export default function WalletConnect() {
             Donate MyGovToken
           </button>
         </div>
-        <div>
-          <h4>
-            Donate TLToken (Assuming TLToken has similar decimals or is a
-            different token)
-          </h4>
-          <input
-            type="text"
-            placeholder="Amount (smallest unit)"
-            value={amountInput}
-            onChange={(e) => setAmountInput(e.target.value)}
-          />
-          <button
-            onClick={() =>
-              handleGenericWrite(
-                "donateTLToken",
-                [amountInput],
-                "TLToken donation successful!"
-              )
-            }
-          >
-            Donate TLToken
-          </button>
-        </div>
 
         <hr />
         <h2> Project Proposals & Voting</h2>
@@ -1104,6 +1126,62 @@ export default function WalletConnect() {
             . Ensure TL Amount is also entered considering its appropriate
             decimal places (currently assumed same as MGov or default 18).
           </p>
+        </div>
+
+        <hr />
+        <h2>TL Specific Operations</h2>
+        <div>
+          <h4>TL Approval</h4>
+          <input
+            type="text"
+            placeholder="Spender Address"
+            value={spenderAddressInput}
+            onChange={(e) => setSpenderAddressInput(e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder={`Amount (in ${tokenSymbol})`}
+            value={amountInput}
+            onChange={(e) => setAmountInput(e.target.value)}
+          />
+          <button
+            onClick={() =>
+              handleGenericTlWrite(
+                "approve",
+                [
+                  spenderAddressInput,
+                  ethers.parseUnits(amountInput || "0", tokenDecimals || 18),
+                ],
+                "Approval successful!"
+              )
+            }
+          >
+            Approve
+          </button>
+        </div>
+
+        <div>
+          <h4>
+            Donate TLToken (Assuming TLToken has similar decimals or is a
+            different token)
+          </h4>
+          <input
+            type="text"
+            placeholder="Amount (smallest unit)"
+            value={amountInput}
+            onChange={(e) => setAmountInput(e.target.value)}
+          />
+          <button
+            onClick={() =>
+              handleGenericWrite(
+                "donateTLToken",
+                [amountInput],
+                "TLToken donation successful!"
+              )
+            }
+          >
+            Donate TLToken
+          </button>
         </div>
 
         <style jsx>{`
