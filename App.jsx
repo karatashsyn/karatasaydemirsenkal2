@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
 
-import DiamondAbi from "@/abi/Diamond.json";
+import DiamondAbi from "./abi/Diamond.json";
 // Add others similarly
 
 export default function WalletConnect() {
