@@ -8,14 +8,14 @@ export default function WalletConnect() {
   const [account, setAccount] = useState(null);
   const [signer, setSigner] = useState(null);
   const [contractInstance, setContractInstance] = useState(null);
-  const diamondAddress = "0x778A994478557123e786b9192Afdc64Aa6EB4eE3"; // Your contract address
+  const diamondAddress = "0x4c6DEE8FE9De18686748b331174510aB76E4bc45"; // Your contract address
 
   // General state for messages and results
   const [message, setMessage] = useState("");
   const [tokenName, setTokenName] = useState("");
   const [tokenSymbol, setTokenSymbol] = useState("");
   const [tokenDecimals, setTokenDecimals] = useState(null);
-  const [totalSupply, setTotalSupply] = useState("");
+  const [availableSupply, setAvailableSupply] = useState("");
   const [maxSupply, setMaxSupply] = useState("");
   const [memberCount, setMemberCount] = useState(0);
 
@@ -130,7 +130,7 @@ export default function WalletConnect() {
       const decimals = await contractInstance.decimals();
       setTokenDecimals(Number(decimals)); // Convert BigInt to Number for decimals
       const supply = await contractInstance.balanceOf(diamondAddress);
-      setTotalSupply(supply.toString());
+      setAvailableSupply(supply.toString());
       const max = await contractInstance.MAX_SUPPLY();
       setMaxSupply(max.toString());
     } catch (error) {
@@ -343,16 +343,32 @@ export default function WalletConnect() {
           </p>
         )}
 
-        <hr />
-        <h2>Token Information</h2>
-        <button onClick={fetchInitialData}>Refresh Token Info</button>
-        <p>Name: {tokenName}</p>
-        <p>Symbol: {tokenSymbol}</p>
-        <p>Decimals: {tokenDecimals !== null ? tokenDecimals : "Loading..."}</p>
+        {/* <hr /> */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+          }}
+        >
+          <h2>{`${tokenName} (${memberCount} members)`}</h2>
+          <button
+            onClick={() => {
+              fetchInitialData();
+              fetchMemberCount();
+            }}
+          >
+            Refresh Token Info
+          </button>
+        </div>
+
         <p>
-          Total Supply:{" "}
-          {totalSupply
-            ? ethers.formatUnits(totalSupply, tokenDecimals || 18)
+          Available Supply:{" "}
+          {availableSupply
+            ? ethers.formatUnits(availableSupply, tokenDecimals || 18)
             : "Loading..."}{" "}
           {tokenSymbol}
         </p>
@@ -365,47 +381,9 @@ export default function WalletConnect() {
         </p>
 
         <hr />
-        <h2>🔧 Test Functions (Admin/Dev)</h2>
-        <div>
-          <h4>Test Mint Both (MGov & TL Tokens)</h4>
-          <input
-            type="text"
-            placeholder="To Address"
-            value={testMintToAddress}
-            onChange={(e) => setTestMintToAddress(e.target.value)}
-            style={{ width: "300px", marginRight: "10px" }}
-          />
-          <input
-            type="text"
-            placeholder={`MGov Amount (in ${tokenSymbol || "tokens"})`}
-            value={testMintMgovAmount}
-            onChange={(e) => setTestMintMgovAmount(e.target.value)}
-            style={{ marginRight: "10px" }}
-          />
-          <input
-            type="text"
-            placeholder="TL Amount (smallest unit or token unit)" // Clarify if TL has different decimals
-            value={testMintTlAmount}
-            onChange={(e) => setTestMintTlAmount(e.target.value)}
-            style={{ marginRight: "10px" }}
-          />
-          <button onClick={handleTestMintBoth}>Test Mint Both</button>
-          <p style={{ fontSize: "0.8em", color: "#555" }}>
-            Note: MGov Amount will be parsed using{" "}
-            {tokenDecimals !== null
-              ? `${tokenDecimals} decimals`
-              : "default 18 decimals"}
-            . Ensure TL Amount is also entered considering its appropriate
-            decimal places (currently assumed same as MGov or default 18).
-          </p>
-        </div>
-
-        <hr />
         <h2>Faucet & Membership</h2>
         <button onClick={handleFaucet}>Claim Faucet Tokens</button>
-        <button onClick={fetchMemberCount} style={{ marginLeft: "10px" }}>
-          Get Member Count
-        </button>
+
         <p>Member Count: {memberCount.toString()}</p>
         <div>
           <input
@@ -566,7 +544,7 @@ export default function WalletConnect() {
           )}
         </div>
         <div>
-          <h4>Transfer</h4>
+          <h4>Transfer to Account</h4>
           <input
             type="text"
             placeholder="To Address"
@@ -594,100 +572,7 @@ export default function WalletConnect() {
             Transfer
           </button>
         </div>
-        <div>
-          <h4>Transfer From</h4>
-          <input
-            type="text"
-            placeholder="From Address"
-            value={addressFromInput}
-            onChange={(e) => setAddressFromInput(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="To Address"
-            value={addressToInput}
-            onChange={(e) => setAddressToInput(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder={`Amount (in ${tokenSymbol})`}
-            value={amountInput}
-            onChange={(e) => setAmountInput(e.target.value)}
-          />
-          <button
-            onClick={() =>
-              handleGenericWrite(
-                "transferFrom",
-                [
-                  addressFromInput,
-                  addressToInput,
-                  ethers.parseUnits(amountInput || "0", tokenDecimals || 18),
-                ],
-                "TransferFrom successful!"
-              )
-            }
-          >
-            Transfer From
-          </button>
-        </div>
-        <div>
-          <h4>Mint (Admin/Owner)</h4>
-          <input
-            type="text"
-            placeholder="To Address"
-            value={addressToInput}
-            onChange={(e) => setAddressToInput(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder={`Amount (in ${tokenSymbol})`}
-            value={amountInput}
-            onChange={(e) => setAmountInput(e.target.value)}
-          />
-          <button
-            onClick={() =>
-              handleGenericWrite(
-                "mint",
-                [
-                  addressToInput,
-                  ethers.parseUnits(amountInput || "0", tokenDecimals || 18),
-                ],
-                "Minting successful!"
-              )
-            }
-          >
-            Mint
-          </button>
-        </div>
-        <div>
-          <h4>Burn (Admin/Owner or Self)</h4>
-          <input
-            type="text"
-            placeholder="From Address (User or Admin)"
-            value={addressFromInput}
-            onChange={(e) => setAddressFromInput(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder={`Amount (in ${tokenSymbol})`}
-            value={amountInput}
-            onChange={(e) => setAmountInput(e.target.value)}
-          />
-          <button
-            onClick={() =>
-              handleGenericWrite(
-                "burn",
-                [
-                  addressFromInput,
-                  ethers.parseUnits(amountInput || "0", tokenDecimals || 18),
-                ],
-                "Burning successful!"
-              )
-            }
-          >
-            Burn
-          </button>
-        </div>
+
         <div>
           <h4>Transfer Faucet Token (likely internal or specific use)</h4>
           <input
@@ -1185,13 +1070,49 @@ export default function WalletConnect() {
           )}
         </div>
 
+        <hr />
+        <h2>Test Functions (Admin)</h2>
+        <div>
+          <h4>Test Mint Both (MGov & TL Tokens)</h4>
+          <input
+            type="text"
+            placeholder="To Address"
+            value={testMintToAddress}
+            onChange={(e) => setTestMintToAddress(e.target.value)}
+            style={{ width: "300px", marginRight: "10px" }}
+          />
+          <input
+            type="text"
+            placeholder={`MGov Amount (in ${tokenSymbol || "tokens"})`}
+            value={testMintMgovAmount}
+            onChange={(e) => setTestMintMgovAmount(e.target.value)}
+            style={{ marginRight: "10px" }}
+          />
+          <input
+            type="text"
+            placeholder="TL Amount (smallest unit or token unit)" // Clarify if TL has different decimals
+            value={testMintTlAmount}
+            onChange={(e) => setTestMintTlAmount(e.target.value)}
+            style={{ marginRight: "10px" }}
+          />
+          <button onClick={handleTestMintBoth}>Test Mint Both</button>
+          <p style={{ fontSize: "0.8em", color: "#555" }}>
+            Note: MGov Amount will be parsed using{" "}
+            {tokenDecimals !== null
+              ? `${tokenDecimals} decimals`
+              : "default 18 decimals"}
+            . Ensure TL Amount is also entered considering its appropriate
+            decimal places (currently assumed same as MGov or default 18).
+          </p>
+        </div>
+
         <style jsx>{`
-          .container {
-            padding: 20px;
-            font-family: Arial, sans-serif;
-            max-width: 900px;
-            margin: auto;
-          }
+          // .container {
+          //   padding: 20px;
+          //   font-family: Arial, sans-serif;
+          //   max-width: 900px;
+          //   margin: auto;
+          // }
 
           .navbar {
             display: flex;
