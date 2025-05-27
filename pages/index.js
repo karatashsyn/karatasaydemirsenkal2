@@ -8,7 +8,7 @@ export default function WalletConnect() {
   const [account, setAccount] = useState(null);
   const [signer, setSigner] = useState(null);
   const [contractInstance, setContractInstance] = useState(null);
-  const diamondAddress = "0xCfD1dBF1E33D3696bbD291E28a3c9288B44B8df3"; // Your contract address
+  const diamondAddress = "0x778A994478557123e786b9192Afdc64Aa6EB4eE3"; // Your contract address
 
   // General state for messages and results
   const [message, setMessage] = useState("");
@@ -58,6 +58,10 @@ export default function WalletConnect() {
   const [surveyInfoResult, setSurveyInfoResult] = useState(null);
   const [surveyOwnerResult, setSurveyOwnerResult] = useState("");
   const [surveyResultsResult, setSurveyResultsResult] = useState(null);
+
+  const [testMintToAddress, setTestMintToAddress] = useState("");
+  const [testMintMgovAmount, setTestMintMgovAmount] = useState("");
+  const [testMintTlAmount, setTestMintTlAmount] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -130,7 +134,7 @@ export default function WalletConnect() {
       const max = await contractInstance.MAX_SUPPLY();
       setMaxSupply(max.toString());
     } catch (error) {
-      console.error("Error fetching initial data:", error);
+      console.log("Error fetching initial data:", error);
       setMessage(`Error fetching initial data: ${error.message}`);
     }
   };
@@ -143,11 +147,10 @@ export default function WalletConnect() {
       const tx = await contractInstance[methodName](...args);
       await tx.wait();
       setMessage(successMessage || `${methodName} successful!`);
-      // Optionally, re-fetch related data
       fetchInitialData();
       fetchMemberCount();
     } catch (error) {
-      console.error(`Error in ${methodName}:`, error);
+      // console.error(`Error in ${methodName}:`, error);
       const rawErrorMessage = error.data?.message || error.message;
       const errorMessage = rawErrorMessage.split("(action")[0];
       setMessage(`Error ${errorMessage}`);
@@ -223,6 +226,44 @@ export default function WalletConnect() {
       console.error(`Error fetching ${methodName}:`, error);
       setMessage(`Error fetching ${methodName}: ${error.message}`);
       setResult(null); // Or some error indicator
+    }
+  };
+
+  const handleTestMintBoth = async () => {
+    if (!testMintToAddress || !testMintMgovAmount || !testMintTlAmount) {
+      alert("Please fill in all fields for Test Mint Both.");
+      return;
+    }
+    if (!ethers.isAddress(testMintToAddress)) {
+      alert("Invalid 'To Address' for Test Mint Both.");
+      return;
+    }
+
+    try {
+      // Assuming mgovAmount and tlAmount should be parsed with the contract's main token decimals
+      // If TLToken has different decimals, adjust parsing for parsedTlAmount accordingly.
+      const parsedMgovAmount = ethers.parseUnits(
+        testMintMgovAmount,
+        tokenDecimals || 18
+      );
+      const parsedTlAmount = ethers.parseUnits(
+        testMintTlAmount,
+        tokenDecimals || 18
+      ); // Adjust if TL has different decimals
+
+      await handleGenericWrite(
+        "testMintBoth",
+        [testMintToAddress, parsedMgovAmount, parsedTlAmount],
+        "testMintBoth successful!"
+      );
+      // Clear inputs after successful transaction
+      setTestMintToAddress("");
+      setTestMintMgovAmount("");
+      setTestMintTlAmount("");
+    } catch (error) {
+      // Error is already handled by handleGenericWrite, but you can add specific logic here if needed
+      console.error("Error in handleTestMintBoth:", error);
+      // setMessage is handled by handleGenericWrite
     }
   };
 
@@ -322,6 +363,42 @@ export default function WalletConnect() {
             : "Loading..."}{" "}
           {tokenSymbol}
         </p>
+
+        <hr />
+        <h2>🔧 Test Functions (Admin/Dev)</h2>
+        <div>
+          <h4>Test Mint Both (MGov & TL Tokens)</h4>
+          <input
+            type="text"
+            placeholder="To Address"
+            value={testMintToAddress}
+            onChange={(e) => setTestMintToAddress(e.target.value)}
+            style={{ width: "300px", marginRight: "10px" }}
+          />
+          <input
+            type="text"
+            placeholder={`MGov Amount (in ${tokenSymbol || "tokens"})`}
+            value={testMintMgovAmount}
+            onChange={(e) => setTestMintMgovAmount(e.target.value)}
+            style={{ marginRight: "10px" }}
+          />
+          <input
+            type="text"
+            placeholder="TL Amount (smallest unit or token unit)" // Clarify if TL has different decimals
+            value={testMintTlAmount}
+            onChange={(e) => setTestMintTlAmount(e.target.value)}
+            style={{ marginRight: "10px" }}
+          />
+          <button onClick={handleTestMintBoth}>Test Mint Both</button>
+          <p style={{ fontSize: "0.8em", color: "#555" }}>
+            Note: MGov Amount will be parsed using{" "}
+            {tokenDecimals !== null
+              ? `${tokenDecimals} decimals`
+              : "default 18 decimals"}
+            . Ensure TL Amount is also entered considering its appropriate
+            decimal places (currently assumed same as MGov or default 18).
+          </p>
+        </div>
 
         <hr />
         <h2>Faucet & Membership</h2>
