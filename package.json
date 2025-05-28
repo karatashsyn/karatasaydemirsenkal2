@@ -12,7 +12,8 @@
     "ethers": "^6.14.3",
     "next": "15.3.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "sonner": "^2.0.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
