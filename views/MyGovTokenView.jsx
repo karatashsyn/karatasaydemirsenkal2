@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { ethers } from "ethers";
-
-import DiamondAbi from "@/abi/Diamond.json";
-import tlAbi from "@/abi/TlToken.json";
 import { diamondAddress, tlAddress } from "@/constants";
 import { toast } from "sonner";
+import {
+  datetimeLocalToUnix,
+  getReadableDate,
+  parseUintArrayString,
+  unixToDatetimeLocal,
+} from "@/utils";
 // Add others similarly
 
 export default function MyGovTokenView({ contractInstance, account }) {
@@ -293,15 +296,6 @@ export default function MyGovTokenView({ contractInstance, account }) {
             {tokenSymbol}
           </strong>
         </p>
-        <p>
-          Max Supply:{" "}
-          <strong>
-            {maxSupply
-              ? ethers.formatUnits(maxSupply, tokenDecimals || 18)
-              : "Loading..."}{" "}
-            {tokenSymbol}
-          </strong>
-        </p>
       </div>
 
       <hr />
@@ -418,7 +412,15 @@ export default function MyGovTokenView({ contractInstance, account }) {
               onChange={(e) => setAmountInput(e.target.value)}
             />
             <button
-              onClick={() =>
+              onClick={async () => {
+                await handleGenericWrite(
+                  "approve",
+                  [
+                    addressToInput,
+                    ethers.parseUnits(amountInput || "0", tokenDecimals || 18),
+                  ],
+                  "Approval successful!"
+                );
                 handleGenericWrite(
                   "transfer",
                   [
@@ -426,8 +428,8 @@ export default function MyGovTokenView({ contractInstance, account }) {
                     ethers.parseUnits(amountInput || "0", tokenDecimals || 18),
                   ],
                   "Transfer successful!"
-                )
-              }
+                );
+              }}
             >
               Transfer
             </button>
@@ -436,22 +438,17 @@ export default function MyGovTokenView({ contractInstance, account }) {
 
         <div className="card">
           <h3>Approval and Allowance </h3>
+
           <input
             type="text"
-            placeholder="Owner Address"
-            value={ownerAddressInput}
-            onChange={(e) => setOwnerAddressInput(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="Spender Address"
+            placeholder="Target Address"
             value={spenderAddressInput}
             onChange={(e) => setSpenderAddressInput(e.target.value)}
           />
           <button
             onClick={() =>
               handleGenericRead("allowance", setAllowanceResult, [
-                ownerAddressInput,
+                account,
                 spenderAddressInput,
               ])
             }
@@ -469,7 +466,7 @@ export default function MyGovTokenView({ contractInstance, account }) {
             <h4>Approve</h4>
             <input
               type="text"
-              placeholder="Spender Address"
+              placeholder="Target Address"
               value={spenderAddressInput}
               onChange={(e) => setSpenderAddressInput(e.target.value)}
             />
@@ -506,13 +503,22 @@ export default function MyGovTokenView({ contractInstance, account }) {
             onChange={(e) => setAmountInput(e.target.value)}
           />
           <button
-            onClick={() =>
+            onClick={async () => {
+              await handleGenericWrite(
+                "approve",
+                [
+                  diamondAddress,
+                  ethers.parseUnits(amountInput || "0", tokenDecimals || 18),
+                ],
+                "Approval successful!"
+              );
+
               handleGenericWrite(
                 "donateMyGovToken",
                 [ethers.parseUnits(amountInput || "0", tokenDecimals || 18)],
                 "MyGovToken donation successful!"
-              )
-            }
+              );
+            }}
           >
             Donate MyGovToken
           </button>
@@ -533,11 +539,14 @@ export default function MyGovTokenView({ contractInstance, account }) {
             value={webUrlInput}
             onChange={(e) => setWebUrlInput(e.target.value)}
           />
+
           <input
-            type="text"
-            placeholder="Vote Deadline (Unix Timestamp)"
-            value={deadlineInput}
-            onChange={(e) => setDeadlineInput(e.target.value)}
+            type="datetime-local"
+            value={unixToDatetimeLocal(deadlineInput)}
+            onChange={(e) => {
+              const unix = datetimeLocalToUnix(e.target.value);
+              setDeadlineInput(unix);
+            }}
           />
           <input
             type="text"
@@ -764,7 +773,9 @@ export default function MyGovTokenView({ contractInstance, account }) {
               Get Next TL Payment
             </button>
             {projectNextTLPaymentResult && (
-              <p>Next TL Payment: {projectNextTLPaymentResult.toString()}</p>
+              <p>
+                Next TL Payment: {getReadableDate(projectNextTLPaymentResult)}
+              </p>
             )}
             <button
               onClick={() =>
@@ -821,11 +832,14 @@ export default function MyGovTokenView({ contractInstance, account }) {
               value={webUrlInput}
               onChange={(e) => setWebUrlInput(e.target.value)}
             />
+
             <input
-              type="text"
-              placeholder="Survey Deadline (Unix Timestamp)"
-              value={deadlineInput}
-              onChange={(e) => setDeadlineInput(e.target.value)}
+              type="datetime-local"
+              value={unixToDatetimeLocal(deadlineInput)}
+              onChange={(e) => {
+                const unix = datetimeLocalToUnix(e.target.value);
+                setDeadlineInput(unix);
+              }}
             />
             <input
               type="text"
@@ -930,7 +944,18 @@ export default function MyGovTokenView({ contractInstance, account }) {
                   wordBreak: "break-all",
                 }}
               >
-                {JSON.stringify(surveyInfoResult, null, 2)}
+                <p>URL: {Object.values(surveyInfoResult ?? {})[0]}</p>
+                <p>
+                  Deadline:{" "}
+                  {getReadableDate(Object.values(surveyInfoResult ?? {})[1])}
+                </p>
+                <p>
+                  Number of choices: {Object.values(surveyInfoResult ?? {})[2]}
+                </p>
+                <p>
+                  Max allowed choices:{" "}
+                  {Object.values(surveyInfoResult ?? {})[3]}
+                </p>
               </pre>
             )}
             <button

@@ -20,6 +20,10 @@ h1 {
   line-height: 1.1;
 }
 
+body {
+  padding: 16px;
+}
+
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -103,6 +107,7 @@ hr {
 }
 input[type="text"],
 input[type="number"],
+input[type="datetime-local"],
 select {
   padding: 8px;
   margin: 5px 5px 5px 0;

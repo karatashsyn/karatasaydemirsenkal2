@@ -107,8 +107,9 @@ export default function WalletConnect() {
       className="container"
       style={{
         fontFamily: "Arial, sans-serif",
-        maxWidth: "1600px",
+        width: "100%",
         margin: "auto",
+        // padding: "16px",
       }}
     >
       <navbar
@@ -155,7 +156,11 @@ export default function WalletConnect() {
       {activeTab === "mygov" ? (
         <MyGovTokenView account={account} contractInstance={contractInstance} />
       ) : (
-        <TlTokenView account={account} contractInstance={tlContractInstance} />
+        <TlTokenView
+          account={account}
+          contractInstance={tlContractInstance}
+          setMessage={setMessage}
+        />
       )}
     </main>
   );

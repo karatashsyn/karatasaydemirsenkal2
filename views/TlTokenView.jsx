@@ -1,8 +1,10 @@
 import { tlAddress } from "@/constants";
 import React, { useState } from "react";
+import { ethers } from "ethers";
 
-export default function TlTokenView({ contractInstance }) {
+export default function TlTokenView({ setMessage, contractInstance }) {
   const [amountInput, setAmountInput] = useState("");
+  const tokenDecimals = 18;
 
   const [addressInput, setAddressInput] = useState("");
   const [spenderAddressInput, setSpenderAddressInput] = useState("");
@@ -109,7 +111,7 @@ export default function TlTokenView({ contractInstance }) {
           <h4>TL Approval</h4>
           <input
             type="text"
-            placeholder="Spender Address"
+            placeholder="Target Address"
             value={spenderAddressInput}
             onChange={(e) => setSpenderAddressInput(e.target.value)}
           />
@@ -136,10 +138,7 @@ export default function TlTokenView({ contractInstance }) {
         </div>
 
         <div>
-          <h4>
-            Donate TLToken (Assuming TLToken has similar decimals or is a
-            different token)
-          </h4>
+          <h4>Donate TLToken</h4>
           <input
             type="text"
             placeholder="Amount (smallest unit)"
@@ -169,7 +168,7 @@ export default function TlTokenView({ contractInstance }) {
           />
           <input
             type="text"
-            placeholder="Spender Address"
+            placeholder="Target Address"
             value={spenderAddressInput}
             onChange={(e) => setSpenderAddressInput(e.target.value)}
           />
