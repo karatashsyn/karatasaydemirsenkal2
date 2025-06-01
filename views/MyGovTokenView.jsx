@@ -810,7 +810,23 @@ export default function MyGovTokenView({ contractInstance, account }) {
                   wordBreak: "break-all",
                 }}
               >
-                {JSON.stringify(projectInfoResult, null, 2)}
+                <p>URL: {Object.values(projectInfoResult ?? {})[0]}</p>
+                <p>
+                  Deadline:{" "}
+                  {getReadableDate(Object.values(projectInfoResult ?? {})[1])}
+                </p>
+                <p>
+                  Payment Amounts:{" "}
+                  {Object.values(projectInfoResult ?? {})[2].join(", ")}
+                </p>
+                <p>
+                  Payment Schedule:{" "}
+                  {Object.values(projectInfoResult ?? {})[3].map((e, index) => (
+                    <div style={{}}>{`${index + 1}: ${getReadableDate(
+                      e
+                    )}`}</div>
+                  ))}
+                </p>
               </pre>
             )}
           </div>
