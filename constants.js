@@ -1,3 +1,3 @@
-export const diamondAddress = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"; // Your contract address
+export const diamondAddress = "0x9047E04868684a352Eb48df4e1d8A013f8EDeBB6"; // Your contract address
 
-export const tlAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+export const tlAddress = "0x5beD10783C5938E797de191C5e35882291967Ad8";
